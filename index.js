@@ -4,27 +4,68 @@ var request = require("request"),
     repl    = require("repl");
 
 var levelup = require('levelup');
+var leveldown = require('leveldown');
+var url = require('url');
 
-var storeDB = new levelup("./database/stores");
-var productDB = new levelup("./database/products");
-var joinDB = new levelup("./database/joins");
+var storeDB;
+var productDB;
+var joinDB;
 
 var storeList = { };
 var productList = { };
 var productStoreJoin = { };
 
+var seeds   = [ ],
+    visited = { },
+    seen    = { },
+    current,
+    retry   = 0;
+
+function rekick () {
+  console.log("rekicking");
+  current = seeds.shift();
+
+  console.log("starting with", current);
+  request(base + current, processPage);
+
+}
+
 repl.start("> ").context.internal = {
   storeList: storeList,
   productList: productList,
-  productStoreJoin: productStoreJoin
+  productStoreJoin: productStoreJoin,
+  seeds: seeds,
+  rekick: rekick,
+  current: current
 };
 
 var base = 'http://oregonliquorsearch.com/';
 
-var seeds   = [ ],
-    visited = { },
-    seen    = { },
-    current;
+
+function updateDatabases ( ) {
+  leveldown.destroy("./database/stores.old", function (err) {
+    if (err) {
+      console.log("error", err);
+    }
+    leveldown.destroy("./database/products.old", function (err) {
+      if (err) {
+        console.log("error", err);
+      }
+      leveldown.destroy("./database/joins.old", function (err) {
+        if (err) {
+          console.log("error", err);
+        }
+
+        storeDB = new levelup("./database/stores.new");
+        productDB = new levelup("./database/products.new");
+        joinDB = new levelup("./database/joins.new");
+
+        validateBirthday(processPage);
+      });
+
+    });
+  });
+}
 
 function validateBirthday (callback) {
   var month = Math.floor(Math.random() * 12) + 1,
@@ -48,7 +89,7 @@ function validateBirthday (callback) {
 
 }
 
-validateBirthday(processPage);
+updateDatabases();
 
 function processPage (err, response, body) {
   if (err) {
@@ -56,6 +97,12 @@ function processPage (err, response, body) {
 
     request(base + current, processPage);
     return;
+  }
+
+  if (body.match("Error |")) {
+    console.log("error on page " + response.request.href);
+    //seeds = [ ];
+    return validateBirthday(processPage);
   }
 
   if (body.match("selMonth")) {
@@ -137,9 +184,9 @@ function processPage (err, response, body) {
     var price = $(parts[1]).text();
 
     productList[productId] = {
-      productId: productId.replace(/\s+/, ""),
-      name: productName.replace(/\s+/, ""),
-      category: category.replace(/\s+/, ""),
+      productId: productId.trim(),
+      name: productName.trim(),
+      category: category.trim(),
       age: age,
       size: size,
       proof: Number(proof),
@@ -163,12 +210,12 @@ function processPage (err, response, body) {
       var qty = $(parts[6]).text();
 
       storeList[storeNo] = {
-        storeNo: storeNo.replace(/\s+/, ""),
-        address: address.replace(/\s+/, ""),
-        city: city.replace(/\s+/, ""),
-        zip: zip.replace(/\s+/, ""),
-        phone: phone.replace(/\s+/, ""),
-        hours: hours.replace(/\s+/, "")
+        storeNo: storeNo.trim(),
+        address: address.trim(),
+        city: city.trim(),
+        zip: zip.trim(),
+        phone: phone.trim(),
+        hours: hours.trim()
       };
 
       storeDB.put(storeNo, JSON.stringify(storeList[storeNo]));
@@ -179,13 +226,47 @@ function processPage (err, response, body) {
 
   // check for the end of the queue
   if (seeds.length === 0) {
-    console.log("Done!");
-    setTimeout(function () {
-      fs.writeFileSync("stores.json", JSON.stringify(storeList), "utf8");
-      fs.writeFileSync("products.json", JSON.stringify(productList), "utf8");
-      fs.writeFileSync("product_store.json", JSON.stringify(productStoreJoin), "utf8");
-      process.exit(1);
-    }, 30000);
+    function checkend () {
+      retry++;
+      if (retry < 5) {
+        setTimeout(function () {
+          current = seeds.shift();
+          if (current) {
+            request(base + current, processPage);
+          } else {
+            checkend();
+          }
+        }, 5000);
+
+      } else {
+        console.log("Done!");
+        setTimeout(function () {
+          fs.writeFileSync("stores.json", JSON.stringify(storeList), "utf8");
+          fs.writeFileSync("products.json", JSON.stringify(productList), "utf8");
+          fs.writeFileSync("product_store.json", JSON.stringify(productStoreJoin), "utf8");
+          storeDB.close();
+          productDB.close();
+          joinDB.close();
+
+          try {
+            fs.renameSync("./database/stores", "./database/stores.old");
+            fs.renameSync("./database/products", "./database/products.old");
+            fs.renameSync("./database/joins", "./database/joins.old");
+          } catch(err) {
+            console.log("error", err);
+          }
+
+          try {
+            fs.renameSync("./database/stores.new", "./database/stores");
+            fs.renameSync("./database/products.new", "./database/products");
+            fs.renameSync("./database/joins.new", "./database/joins");
+          } catch(err) {
+            console.log("error", err);
+          }
+          process.exit(1);
+        }, 30000);
+      }
+    }
     return;
   }
 
@@ -196,5 +277,4 @@ function processPage (err, response, body) {
   current = seeds.shift();
 
   request(base + current, processPage);
-
 }

@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+
+
+var levelup = require('levelup');
+var productDB = new levelup(process.argv[2]);
+
+var categories = { };
+var productStream = productDB.createValueStream();
+
+productStream.on("data", function (data) {
+  data = JSON.parse(data);
+  categories[data.category] = true;
+});
+
+productStream.on("close", function ( ) {
+  console.log(Object.keys(categories));
+});

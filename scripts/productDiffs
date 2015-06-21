@@ -1,0 +1,29 @@
+#!/usr/bin/env node
+
+var levelup = require('levelup');
+var diff = require('list-diff');
+
+var joinDB = new levelup(process.argv[3]);
+var oldJoinDB = new levelup(process.argv[2]);
+
+var old = [ ];
+var current = [ ];
+
+var oldStream = oldJoinDB.createKeyStream();
+
+oldStream.on("data", function (data) {
+  old.push(data);
+});
+
+oldStream.on("close", function ( ) {
+  console.log("old database: " + old.length);
+  var newStream = joinDB.createKeyStream();
+
+  newStream.on("data", function (data) {
+    current.push(data);
+  });
+
+  newStream.on("close", function ( ) {
+    console.log(diff(old, current));
+  });
+});
