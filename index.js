@@ -45,12 +45,19 @@ function validateBirthday (callback) {
       }
     }
   ).form({ selMonth: month, selDay: day, selYear: year });
-  
+
 }
 
 validateBirthday(processPage);
 
 function processPage (err, response, body) {
+  if (err) {
+    console.log("error", err);
+
+    request(base + current, processPage);
+    return;
+  }
+
   if (body.match("selMonth")) {
     if (current) {
       seeds.unshift(current);
@@ -59,13 +66,13 @@ function processPage (err, response, body) {
     console.log("validating");
     return validateBirthday(processPage);
   }
-  
+
   var $ = cheerio.load(body);
   var i, href;
 
   // check for categories
   var categories = $("li a").find();
-  
+
   if (categories.length) {
     for (i = 0; i < categories.length; i++) {
       href = $(categories[i]).attr("href");
@@ -75,10 +82,10 @@ function processPage (err, response, body) {
       }
     }
   }
-  
+
   // check for pagination
   var pagination = $("#pagination a").find();
-  
+
   if (pagination.length) {
     for (i = 0; i < pagination.length; i++) {
       href = $(categories[i]).attr("href");
@@ -91,22 +98,22 @@ function processPage (err, response, body) {
 
   // check for links
   var links = $("table.list").children();
-  
+
   if (links.length) {
     for (i = 1; i < links.length; i++) {
       var td = $(links[i]).children();
-      
+
       var a = $(td).find("a");
 
       href = $(a).attr("href");
-      
+
       if (seen[href] !== true) {
         seen[href] = true;
         seeds.unshift(href);
       }
     }
   }
-  
+
   var product = $("#product-desc h2").find().text();
   var productParts = product.split(": ");
   var productId = productParts[0].split(" ")[1];
@@ -130,9 +137,9 @@ function processPage (err, response, body) {
     var price = $(parts[1]).text();
 
     productList[productId] = {
-      productId: productId,
-      name: productName,
-      category: category,
+      productId: productId.replace(/\s+/, ""),
+      name: productName.replace(/\s+/, ""),
+      category: category.replace(/\s+/, ""),
       age: age,
       size: size,
       proof: Number(proof),
@@ -156,12 +163,12 @@ function processPage (err, response, body) {
       var qty = $(parts[6]).text();
 
       storeList[storeNo] = {
-        storeNo: storeNo,
-        address: address,
-        city: city,
-        zip: zip,
-        phone: phone,
-        hours: hours
+        storeNo: storeNo.replace(/\s+/, ""),
+        address: address.replace(/\s+/, ""),
+        city: city.replace(/\s+/, ""),
+        zip: zip.replace(/\s+/, ""),
+        phone: phone.replace(/\s+/, ""),
+        hours: hours.replace(/\s+/, "")
       };
 
       storeDB.put(storeNo, JSON.stringify(storeList[storeNo]));
@@ -181,7 +188,7 @@ function processPage (err, response, body) {
     }, 30000);
     return;
   }
-  
+
   if (current) {
     visited[current] = true;
   }
