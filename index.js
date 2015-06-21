@@ -102,7 +102,7 @@ function processPage (err, response, body) {
   if (body.match("Error |")) {
     console.log("error on page " + response.request.href);
     //seeds = [ ];
-    return validateBirthday(processPage);
+    //return validateBirthday(processPage);
   }
 
   if (body.match("selMonth")) {

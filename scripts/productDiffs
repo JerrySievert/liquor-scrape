@@ -24,6 +24,20 @@ oldStream.on("close", function ( ) {
   });
 
   newStream.on("close", function ( ) {
+    old = old.filter(function(e) {
+      if (e.match(/1200$/)) {
+        return true;
+      } else {
+        return false;
+      }
+    });
+    current = current.filter(function(e) {
+      if (e.match(/1200$/)) {
+        return true;
+      } else {
+        return false;
+      }
+    });
     console.log(diff(old, current));
   });
 });
