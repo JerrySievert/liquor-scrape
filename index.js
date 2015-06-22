@@ -267,7 +267,8 @@ function processPage (err, response, body) {
         }, 30000);
       }
     }
-    return;
+
+    return checkend();
   }
 
   if (current) {
