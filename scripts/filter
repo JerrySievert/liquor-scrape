@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+
+var categories = [
+  'CORDIALS|CREAM LIQUEUR',
+  'SCOTCH|SINGLE MALT',
+  'CANADIAN|US BLEND|US BOTTLED',
+  'DOMESTIC WHISKEY|STRAIGHT|BOURBON / TN WHISKEY',
+  'DOMESTIC WHISKEY|STRAIGHT|OTHER',
+  'DOMESTIC WHISKEY|STRAIGHT|SMALL BATCH',
+  'DOMESTIC WHISKEY|STRAIGHT|RYE',
+  'IRISH',
+  'SCOTCH|BLEND|FOREIGN BOTTLED',
+  'DOMESTIC WHISKEY|BLEND',
+  'OTHER IMPORTED WHISKY'
+];
+
+var str = '';
+process.stdin.on('data', function (data) {
+  str += data.toString();
+});
+
+process.stdin.on('end', function ( ) {
+  var d = JSON.parse(str);
+  var results = filterData(d);
+
+  console.log(JSON.stringify(results));
+});
+
+function filterData (data) {
+  var filtered = [ ];
+
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+
+    if (categories.indexOf(row.data.category) !== -1) {
+      filtered.push(row);
+    }
+  }
+
+  return filtered;
+}

@@ -11,6 +11,7 @@
   "license": "BSD",
   "dependencies": {
     "cheerio": "~0.10.5",
+    "handlebars": "^3.0.3",
     "leveldown": "^1.3.0",
     "levelup": "^1.2.1",
     "list-diff": "^0.2.0",

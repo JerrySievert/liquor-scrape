@@ -1,0 +1,39 @@
+#!/usr/bin/env node
+
+var handlebars = require('handlebars');
+var fs = require('fs');
+var source = fs.readFileSync(process.argv[2], 'utf8');
+
+var str = '';
+process.stdin.on('data', function (data) {
+  str += data.toString();
+});
+
+process.stdin.on('end', function ( ) {
+  var d = JSON.parse(str);
+  processData(d);
+});
+
+var added = [ ];
+var removed = [ ];
+
+function processData (data) {
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+    var type = row.type;
+    var category = row.category;
+    row.data.name = decodeURI(row.data.name);
+
+    if (type === 'added') {
+      added.push(row);
+    } else {
+      removed.push(row);
+    }
+  }
+
+  var compiled = handlebars.compile(source);
+  console.log(compiled({
+    added: added,
+    removed: removed
+  }));
+}

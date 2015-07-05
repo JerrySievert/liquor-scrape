@@ -1,0 +1,70 @@
+#!/usr/bin/env node
+
+var levelup = require('levelup');
+var joinDB = new levelup(process.argv[2]);
+
+
+var str = '';
+process.stdin.on('data', function (data) {
+  str += data.toString();
+});
+
+process.stdin.on('end', function ( ) {
+  var d = JSON.parse(str);
+  processData(d);
+});
+
+var added = [ ];
+var removed = [ ];
+var count = 0;
+
+function processData (data) {
+  count = data.length;
+
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+
+    if (row.type === 'removed') {
+      count--;
+      removed.push(row);
+      if (count === 0) {
+        done();
+      }
+    } else {
+      retrieveQty(row);
+    }
+  }
+}
+
+function retrieveQty (data) {
+  var key = data.data.productId + ":" + data.store;
+  joinDB.get(key, function (err, res) {
+    if (err) {
+      console.log("ERROR: " + err);
+    } else {
+      data.qty = res;
+      added.push(data);
+    }
+
+    count--;
+    if (count === 0) {
+      done();
+    }
+  });
+}
+
+function sortF (a, b) {
+  if (a.data.category < b.data.category) {
+    return -1;
+  } else if (a.data.category > b.data.category) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+function done ( ) {
+  removed.sort(sortF);
+  added.sort(sortF);
+  console.log(JSON.stringify(removed.concat(added)));
+}

@@ -3,6 +3,11 @@
 var levelup = require('levelup');
 var diff = require('list-diff');
 
+if (process.argv.length < 4) {
+  console.log("USAGE: productDiffs oldDB currentDB");
+  process.exit(1);
+}
+
 var joinDB = new levelup(process.argv[3]);
 var oldJoinDB = new levelup(process.argv[2]);
 
@@ -16,7 +21,6 @@ oldStream.on("data", function (data) {
 });
 
 oldStream.on("close", function ( ) {
-  console.log("old database: " + old.length);
   var newStream = joinDB.createKeyStream();
 
   newStream.on("data", function (data) {
@@ -38,6 +42,6 @@ oldStream.on("close", function ( ) {
         return false;
       }
     });
-    console.log(diff(old, current));
+    console.log(JSON.stringify(diff(old, current)));
   });
 });

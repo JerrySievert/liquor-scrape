@@ -1,0 +1,80 @@
+#!/usr/bin/env node
+
+var levelup = require('levelup');
+var productDB = new levelup(process.argv[2]);
+var oldProductDB = new levelup(process.argv[3]);
+
+
+var str = '';
+process.stdin.on('data', function (data) {
+  str += data.toString();
+});
+
+process.stdin.on('end', function ( ) {
+  var d = JSON.parse(str);
+  processData(d);
+});
+
+var changes = [ ];
+var count = 0;
+
+function processData (data) {
+  count = data.length;
+
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+
+    var parts = row.value.split(":");
+    retrieveValue(parts[0], row);
+  }
+}
+
+function retrieveValue (key, row) {
+  if (row.left) {
+    oldProductDB.get(key, function (err, data) {
+      count--;
+      if (err) {
+        console.log("ERROR: " + err);
+        addRow(row);
+      } else {
+        addRow(row, JSON.parse(data));
+      }
+    });
+  } else {
+    productDB.get(key, function (err, data) {
+      count--;
+      if (err) {
+        console.log("ERROR: " + err);
+        addRow(row);
+      } else {
+        addRow(row, JSON.parse(data));
+      }
+    });
+  }
+}
+
+function addRow (row, value) {
+  var parts = row.value.split(":");
+
+  if (value) {
+    if (row.both === false) {
+      if (row.left) {
+        changes.push({
+          type: "removed",
+          store: parts[1],
+          data: value
+        });
+      } else {
+        changes.push({
+          type: "added",
+          store: parts[1],
+          data: value
+        });
+      }
+    }
+  }
+
+  if (count === 0) {
+    console.log(JSON.stringify(changes));
+  }
+}

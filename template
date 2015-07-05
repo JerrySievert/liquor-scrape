@@ -1,0 +1,9 @@
+Added:
+{{#each added}}
+  {{data.name}} - {{qty}} ({{data.category}})
+{{/each}}
+
+Removed:
+{{#each removed}}
+  {{data.name}} ({{data.category}})
+{{/each}}
