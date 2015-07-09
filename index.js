@@ -29,7 +29,7 @@ function rekick () {
   request(base + current, processPage);
 
 }
-
+/*
 repl.start("> ").context.internal = {
   storeList: storeList,
   productList: productList,
@@ -38,7 +38,7 @@ repl.start("> ").context.internal = {
   rekick: rekick,
   current: current
 };
-
+*/
 var base = 'http://oregonliquorsearch.com/';
 
 
